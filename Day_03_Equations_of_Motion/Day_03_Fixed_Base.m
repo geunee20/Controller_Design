@@ -1,3 +1,4 @@
+%% Day 3
 %% variablees
 syms theta1(t) theta2(t) theta3(t) l1 l2 l3 m1 m2 m3 g
 

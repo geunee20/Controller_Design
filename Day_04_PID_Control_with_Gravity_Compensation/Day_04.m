@@ -1,4 +1,4 @@
-%% Day 2
+%% Day 4
 %% Setup
 syms theta1(t) theta2(t) theta3(t) m1 m2 m3 l1 l2 l3 g
 q0_d = 0;
