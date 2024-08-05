@@ -17,16 +17,19 @@ T1 = 0.01;
 D1 = 2700;
 M1 = L1*W1*T1*D1;
 
-K = 100;
-C_x = 1;
-C_theta = 3;
+K           = 0.1;
 
-lambda = 1;
-epsilon = 0.5;
-m = 3;
+C_x         = 1;
+C_theta     = 10;
 
-limit = .45;
-Disturbance = 0;
+phi_x       = 1;
+phi_theta   = 2.3;
+
+z_u         = 0.5;
+
+limit       = inf;
+
+disturbance = 0.1;
 
 %% Equation of Motion
 syms x(t) theta1(t) m0 m1 l1 g F
@@ -41,7 +44,7 @@ S1 = sin(theta1);   C1 = cos(theta1);
 
 % Linear Displacement
 s0 = [x, 0].';
-s1 = [x + 1/2*l1*S1, 1/2*l1*C1].';
+s1 = [x - 1/2*l1*S1, 1/2*l1*C1].';
 
 % Linear Velocity
 s0_dot = diff(s0);
@@ -82,50 +85,112 @@ h = simplify(h);
 
 acc = simplify(M^-1*([F; 0] - gravity_term - h));
 
-g_x = diff(acc, F)*F;
+g_x = simplify(diff(acc, F)*F);
 f_x = simplify(acc - g_x);
-%% Displaying the Result 2
-figure(1)
-h1 = plot(t, x1);
-hold on
-
-figure(2)
-h2 = plot(t, x2);
-hold on
-
-%%
-figure(1)
-legend('F = 0.6N', 'F = 1N', 'F = 3N', 'F = 10N', 'location', 'best')
-title('x_1 vs. time')
-xlabel('time [s]')
-ylabel('x_1 [m]')
-figure(2)
-legend('F = 0.6N', 'F = 1N', 'F = 3N', 'F = 10N', 'location', 'best')
-title('x_2 vs. time')
-xlabel('time [s]')
-ylabel('x_2 [rad]')
-
 %% Displaying the Result
+% Output y
 figure(1)
-
-h2 = plot(t, x2, 'b', 'DisplayName', 'x2');
+clf;
+yyaxis left
+h2 = plot(t, x2, '-b', 'DisplayName', 'theta');
 hold on
-h1 = plot(t, x1, 'r', 'DisplayName', 'x1');
+ylabel('\theta [rad]')
+set(gca, 'YColor', 'b');
+yyaxis right
+h1 = plot(t, x1, '-r', 'DisplayName', 'x');
+ylabel('x [m]')
+set(gca, 'YColor', 'r');
+xlabel('t [s]')
+title('State vs. Time')
+legend([h1, h2], {'x', '\theta'}, 'Location', 'best');
 hold off
 
-legend([h1, h2], {'x_1', 'x_2'}, 'location', 'best');
+% Sliding Surface
+figure(2)
+fplot(@(t) -C_x*t)
+hold on
+quiver(x1(1:end-1), x3(1:end-1), diff(x1), diff(x3), 1, 'r', 'LineWidth', 1);
+plot(0, 0, 'ok', 'MarkerSize', 20)
+xlim([min(x1)-0.01, max(x1)]*1.1)
+ylim([min(x3), max(x3)]*1.1)
+title('Phase Portrait: Linear Motion')
+xlabel('x1 [m]')
+ylabel('x3 [m/s]')
+legend('s = 0', 'phase portrait', '', 'Location', 'best')
+hold off
 
-%% Energy Calculation
-function E = calculate_pendulum_energy(x_dot, theta, theta_dot, m0, m1, l, g)
-    % Kinetic Energy of the cart
-    T_c = 0.5 * m0 * x_dot.^2;
+figure(3)
+plot(C_theta*(x2-z), x4)
+hold on
+quiver(x2(1:end-1), x4(1:end-1), diff(x2), diff(x4), 1, 'r', 'LineWidth', 1);
+plot(0, 0, 'ok', 'MarkerSize', 20)
+% xlim([-1, 1])
+title('Phase Portrait: Angular Motion')
+xlabel('x2 [rad]')
+ylabel('x4 [rad/s]')
+legend('s = 0', 'phase portrait', '', 'Location', 'best')
+hold off
 
-    % Kinetic Energy of the pendulum
-    T_p = (m1*x_dot.^2)/2 + (l^2*m1*theta_dot.^2)/6 - (l*m1*cos(theta).*theta_dot.*x_dot)/2;
+figure(4)
+plot(t, S_theta)
+hold on
+plot(t, S_x)
+title('The magnitude of Sliding Surface')
+xlabel('t [s]')
+ylabel('S')
+legend('S_{\theta}', 'S_x', 'Location', 'best')
+hold off
 
-    % Potential Energy of the pendulum
-    V_p = m1 * g * 0.5 * l * cos(theta);
+%% Comparing Parameters
+figure(1)
+plot(t, x1);
+hold on
 
-    % Total Energy
-    E = T_c + T_p + V_p;
-end
+figure(2)
+plot(t, x2);
+hold on
+
+%% Legends
+figure(1)
+title('Effect of C_x on x')
+xlabel('t [s]')
+ylabel('x [m]')
+hold off
+legend('C_x = 0.1', 'C_x = 1', 'C_x = 5', 'C_x = 10', 'Location', 'best')
+
+figure(2)
+title('Effect of C_x on \theta')
+xlabel('t [s]')
+ylabel('\theta [rads]')
+hold off
+legend('C_x = 0.1', 'C_x = 1', 'C_x = 5', 'C_x = 10', 'Location', 'best')
+
+
+%% Input and Output
+figure(1)
+clf;
+yyaxis left
+h2 = plot(t, x2, '-b');
+hold on
+h1 = plot(t, x1, '-r', 'DisplayName', 'x');
+ylabel('Ouput x and \theta')
+set(gca, 'YColor', 'b');
+yyaxis right
+h3 = plot(t, u, '-g');
+ylabel('Input F')
+set(gca, 'YColor', 'g');
+xlabel('t [s]')
+title('State vs. Time')
+legend([h1, h2, h3], {'x', '\theta', 'u'}, 'Location', 'best');
+hold off
+
+%% Reference and Output
+figure(1)
+plot(t, ref, '-b');
+hold on
+plot(t, x1, '-r');
+ylabel('x [m]')
+xlabel('t [s]')
+title('Sinusoidal Response')
+legend('reference', 'x', 'Location', 'best');
+hold off
