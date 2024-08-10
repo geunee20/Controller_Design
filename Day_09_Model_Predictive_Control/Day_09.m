@@ -1,42 +1,32 @@
-%% Day 8
+%% Day 9
 %% Setup
-x1_d = 0;
-x2_d = 0;
-x3_d = 0;
-x4_d = 0;
+Trajectory  = zeros(2, 1000000);
 
-L0 = 0.01;
-W0 = 0.01;
-T0 = 0.01;
-D0 = 2700;
-M0 = L0*W0*T0*D0;
+L0          = 0.01;
+W0          = 0.01;
+T0          = 0.01;
+D0          = 2700;
+M0          = L0*W0*T0*D0;
 
-L1 = 0.14;
-W1 = 0.01;
-T1 = 0.01;
-D1 = 2700;
-M1 = L1*W1*T1*D1;
+L1          = 0.14;
+W1          = 0.01;
+T1          = 0.01;
+D1          = 2700;
+M1          = L1*W1*T1*D1;
 
-K           = 0.1;
+limit       = 0.45;
 
-C_x         = 1;
-C_theta     = 10;
+disturbance = 0;
 
-phi_x       = 1;
-phi_theta   = 2.3;
-
-z_u         = 0.5;
-
-limit       = inf;
-
-disturbance = 0.1;
-
-step_size   = 0.01;
-N_p         = 10;
+T_s         = 0.01;
+N_p         = 5;
 M_c         = 3;
 
-Q = eye(4);
-R = 1;
+Q           = eye(2);
+R           = 1;
+
+Q_Bar       = createBlockDiagonal(Q, N_p);
+R_Bar       = createBlockDiagonal(R, M_c);
 %% Equation of Motion
 syms x(t) theta(t) m0 m1 l1 g F
 I1 = 1/12*m1*l1^2;
@@ -93,7 +83,6 @@ acc = simplify(M^-1*([F; 0] - gravity_term - h));
 
 g_x = simplify(diff(acc, F)*F);
 f_x = simplify(acc - g_x);
-g_x = simplify(diff(g_x, F));
 
 f_x  = [diff(x, t);
         diff(theta, t);
@@ -102,6 +91,13 @@ f_x  = [diff(x, t);
 g_x = [0;
        0;
        g_x];
+
+%% Jacobian Linearization
+A_E = jacobian(f_x, [x, theta, diff(x, t), diff(theta, t)]);
+B_E = jacobian(g_x, F);
+
+%% Augmented State Space
+
 
 %% Displaying the Result
 % Output y
@@ -210,3 +206,23 @@ xlabel('t [s]')
 title('Sinusoidal Response')
 legend('reference', 'x', 'Location', 'best');
 hold off
+
+
+function bar_Mat = createBlockDiagonal(Q, N)
+    % createBlockDiagonal - Creates a block diagonal matrix with Q repeated N times
+    %
+    % Syntax: bar_Q = createBlockDiagonal(Q, N)
+    %
+    % Inputs:
+    %    Q - The matrix to be repeated on the diagonal
+    %    N - The number of times to repeat Q on the diagonal
+    %
+    % Outputs:
+    %    bar_Mat - The resulting block diagonal matrix with Q repeated N times
+
+    % Create a cell array with N copies of Q
+    Q_cell = repmat({Q}, 1, N);
+
+    % Create the block diagonal matrix \bar{Q}
+    bar_Mat = blkdiag(Q_cell{:});
+end
