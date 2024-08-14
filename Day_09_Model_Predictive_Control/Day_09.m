@@ -1,6 +1,8 @@
 %% Day 9
 %% Setup
-Trajectory  = zeros(2, 1000000);
+num_state   = 4;
+
+Trajectory  = zeros(num_state, 20001);
 
 L0          = 0.01;
 W0          = 0.01;
@@ -18,12 +20,12 @@ limit       = 0.45;
 
 disturbance = 0;
 
-T_s         = 0.01;
-N_p         = 5;
-M_c         = 3;
+T_s         = 0.001;
+N_p         = 30;
+M_c         = 15;
 
-Q           = eye(2);
-R           = 1;
+Q           = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
+R           = 0.01;
 
 Q_Bar       = createBlockDiagonal(Q, N_p);
 R_Bar       = createBlockDiagonal(R, M_c);
