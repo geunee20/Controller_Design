@@ -1,34 +1,52 @@
 %% Day 9
 %% Setup
-num_state   = 4;
+% maxInitAngle = 45 degree
+% x trajectory should not become higher than lim_x
+T_s                 = 0.01;
+num_state           = 2;
 
-Trajectory  = zeros(num_state, 20001);
+Trajectory          = zeros(num_state, 20000);
 
-L0          = 0.01;
-W0          = 0.01;
-T0          = 0.01;
-D0          = 2700;
-M0          = L0*W0*T0*D0;
+t = (0:19999) * T_s;
+amplitude = 0.5;
+frequency = 0.1;
+centerValue = 0;
+Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
 
-L1          = 0.14;
-W1          = 0.01;
-T1          = 0.01;
-D1          = 2700;
-M1          = L1*W1*T1*D1;
+L0                  = 0.01;
+W0                  = 0.01;
+T0                  = 0.01;
+D0                  = 2700;
+M0                  = L0*W0*T0*D0;
 
-limit       = 0.45;
+L1                  = 0.14;
+W1                  = 0.01;
+T1                  = 0.01;
+D1                  = 2700;
+M1                  = L1*W1*T1*D1;
 
-disturbance = 0;
+lim_del_x           = inf;
+lim_del_theta       = inf;
+lim_del_dot_x       = inf;
+lim_del_dot_theta   = inf;
+lim_x               = 1;
+lim_theta           = pi;
+lim_dot_x           = inf;
+lim_dot_theta       = inf;
 
-T_s         = 0.001;
-N_p         = 30;
-M_c         = 15;
+lim_u               = 1;
 
-Q           = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1];
-R           = 0.01;
+disturbance         = 0;
 
-Q_Bar       = createBlockDiagonal(Q, N_p);
-R_Bar       = createBlockDiagonal(R, M_c);
+N_p                 = 50;
+M_c                 = 5;
+
+Q           = [1 0; 0 1];
+R           = 1;
+
+Q_Bar       = kron(eye(N_p), Q);
+R_Bar       = kron(eye(M_c), R);
+
 %% Equation of Motion
 syms x(t) theta(t) m0 m1 l1 g F
 I1 = 1/12*m1*l1^2;
@@ -95,11 +113,49 @@ g_x = [0;
        g_x];
 
 %% Jacobian Linearization
-A_E = jacobian(f_x, [x, theta, diff(x, t), diff(theta, t)]);
-B_E = jacobian(g_x, F);
+A_E = formula(jacobian(f_x, [x, theta, diff(x, t), diff(theta, t)]));
+B_E = formula(jacobian(g_x, F));
+
+%% Euler Discretization
+A_d = formula((eye(4) + T_s*A_E));
+B_d = formula(T_s*B_E);
+C_d = sym([eye(2), zeros(2)]);
 
 %% Augmented State Space
+A_a = formula([A_d,     zeros(4, 2);
+               C_d*A_d, eye(2, 2)]);
+B_a = formula([B_d; C_d*B_d]);
+C_a = sym([zeros(2, 4), eye(2)]);
 
+%% Prediction Model
+[m_A, n_A] = size(A_a);
+[m_C, n_C] = size(C_a);
+
+F_a = sym(zeros(N_p*m_C, n_A));
+h_a = sym(zeros(N_p*m_C, n_A));
+
+F_a(1:2, 1:6) = formula(C_a*A_a);
+h_a(1:2, 1:6) = formula(C_a);
+
+for i = 2 : N_p
+    F_a(i*2-1:i*2, :) = formula(F_a((i-1)*2-1:(i-1)*2,:)*A_a);
+    h_a(i*2-1:i*2, :) = formula(h_a((i-1)*2-1:(i-1)*2,:)*A_a);
+end
+
+v = h_a* B_a;
+Phi = v;
+
+for i = 2 : M_c
+    Phi(:, i) = [zeros(2*(i-1), 1); v(1:2*(N_p-i+1), 1)];
+end
+
+%% Quadratic Programming
+% Try this with very small N_p and N_c
+syms del_x del_theta del_dot_x del_dot_theta
+x_a = [del_x; del_theta; del_dot_x; del_dot_theta; x; theta];
+R_ref = sym(zeros(N_p*2, 1));
+Delta_U = formula(-(Phi.'*Q_Bar*Phi + R_Bar)^(-1)*Phi.'*Q_Bar*(F_a*x_a - R_ref));
+delta_u_k = Delta_U(1);
 
 %% Displaying the Result
 % Output y
@@ -210,21 +266,3 @@ legend('reference', 'x', 'Location', 'best');
 hold off
 
 
-function bar_Mat = createBlockDiagonal(Q, N)
-    % createBlockDiagonal - Creates a block diagonal matrix with Q repeated N times
-    %
-    % Syntax: bar_Q = createBlockDiagonal(Q, N)
-    %
-    % Inputs:
-    %    Q - The matrix to be repeated on the diagonal
-    %    N - The number of times to repeat Q on the diagonal
-    %
-    % Outputs:
-    %    bar_Mat - The resulting block diagonal matrix with Q repeated N times
-
-    % Create a cell array with N copies of Q
-    Q_cell = repmat({Q}, 1, N);
-
-    % Create the block diagonal matrix \bar{Q}
-    bar_Mat = blkdiag(Q_cell{:});
-end
