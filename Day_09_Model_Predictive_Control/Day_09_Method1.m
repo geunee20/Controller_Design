@@ -1,4 +1,4 @@
-%% Day 9
+%% Day 9 - Method 1
 %% Setup
 % maxInitAngle = 45 degree
 % x trajectory should not become higher than lim_x
@@ -30,7 +30,7 @@ lim_del_theta       = inf;
 lim_del_dot_x       = inf;
 lim_del_dot_theta   = inf;
 lim_x               = 1;
-lim_theta           = pi;
+lim_theta           = 2*pi;
 lim_dot_x           = inf;
 lim_dot_theta       = inf;
 

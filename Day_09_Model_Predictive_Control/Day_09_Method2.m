@@ -1,4 +1,4 @@
-%% Day 9
+%% Day 9 - Method 2
 %% Setup
 % maxInitAngle = 45 degree
 % x trajectory should not become higher than lim_x
@@ -6,11 +6,11 @@ num_state           = 2;
 
 Trajectory          = zeros(num_state, 20000);
 
-t = (0:19999) * T_s;
-amplitude = 0.5;
-frequency = 0.1;
-centerValue = 0;
-Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
+% t = (0:19999) * T_s;
+% amplitude = 0.5;
+% frequency = 0.1;
+% centerValue = 0;
+% Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
 
 L0                  = 0.01;
 W0                  = 0.01;
@@ -29,7 +29,7 @@ lim_del_theta       = inf;
 lim_del_dot_x       = inf;
 lim_del_dot_theta   = inf;
 lim_x               = 1;
-lim_theta           = pi;
+lim_theta           = 2*pi;
 lim_dot_x           = inf;
 lim_dot_theta       = inf;
 
@@ -46,9 +46,6 @@ R           = 1;
 
 Q_Bar       = kron(eye(N_p), Q);
 R_Bar       = kron(eye(M_c), R);
-
-%%
-% mpcobj = mpc(plant,Ts,N_p,M_c);
 
 %% Equation of Motion
 syms x(t) theta(t) m0 m1 l1 g F
@@ -116,37 +113,8 @@ g_x = [0;
        g_x];
 
 %% Euler Discretization
-A_d = formula((eye(4) + T_s*A_E));
-B_d = formula(T_s*B_E);
-C_d = sym([eye(2), zeros(2)]);
-
-%% Augmented State Space
-A_a = formula([A_d,     zeros(4, 2);
-               C_d*A_d, eye(2, 2)]);
-B_a = formula([B_d; C_d*B_d]);
-C_a = sym([zeros(2, 4), eye(2)]);
 
 %% Prediction Model
-[m_A, n_A] = size(A_a);
-[m_C, n_C] = size(C_a);
-
-F_a = sym(zeros(N_p*m_C, n_A));
-h_a = sym(zeros(N_p*m_C, n_A));
-
-F_a(1:2, 1:6) = formula(C_a*A_a);
-h_a(1:2, 1:6) = formula(C_a);
-
-for i = 2 : N_p
-    F_a(i*2-1:i*2, :) = formula(F_a((i-1)*2-1:(i-1)*2,:)*A_a);
-    h_a(i*2-1:i*2, :) = formula(h_a((i-1)*2-1:(i-1)*2,:)*A_a);
-end
-
-v = h_a* B_a;
-Phi = v;
-
-for i = 2 : M_c
-    Phi(:, i) = [zeros(2*(i-1), 1); v(1:2*(N_p-i+1), 1)];
-end
 
 %% Simulation
 x_0 = [0, pi/20, 0, 0];
