@@ -7,11 +7,11 @@ num_state           = 2;
 
 Trajectory          = zeros(num_state, 20000);
 
-t = (0:19999) * T_s;
-amplitude = 0.5;
-frequency = 0.1;
-centerValue = 0;
-Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
+% t = (0:19999) * T_s;
+% amplitude = 0.5;
+% frequency = 0.1;
+% centerValue = 0;
+% Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
 
 L0                  = 0.01;
 W0                  = 0.01;
@@ -25,14 +25,8 @@ T1                  = 0.01;
 D1                  = 2700;
 M1                  = L1*W1*T1*D1;
 
-lim_del_x           = inf;
-lim_del_theta       = inf;
-lim_del_dot_x       = inf;
-lim_del_dot_theta   = inf;
 lim_x               = 1;
 lim_theta           = 2*pi;
-lim_dot_x           = inf;
-lim_dot_theta       = inf;
 
 lim_u               = 1;
 
