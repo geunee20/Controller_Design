@@ -6,12 +6,12 @@ T_s                 = 0.01;
 num_state           = 2;
 
 Trajectory          = zeros(num_state, 20000);
-
-% t = (0:19999) * T_s;
-% amplitude = 0.5;
-% frequency = 0.1;
-% centerValue = 0;
-% Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
+% Trajectory          = load("150deg.mat").temp';
+t = (0:19999) * T_s;
+amplitude           = 0.3;
+frequency           = 0.4;
+centerValue         = 0;
+Trajectory(1, :) = amplitude * sin(2 * pi * frequency * t) + centerValue;
 
 L0                  = 0.01;
 W0                  = 0.01;
@@ -30,16 +30,16 @@ lim_theta           = 2*pi;
 
 lim_u               = 1;
 
-disturbance         = 0;
+disturbance         = 0; % [3.43, 3.35, 2.92, 2.8, 0.79, 1.3, 0.98]
 
-N_p                 = 50;
+N_p                 = 50; % [23, 30, 40, 50, 80, 60, 70]
 M_c                 = 5;
 
-Q           = [1 0; 0 1];
-R           = 1;
+Q                   = [1 0; 0 1];
+R                   = 1; 
 
-Q_Bar       = kron(eye(N_p), Q);
-R_Bar       = kron(eye(M_c), R);
+Q_Bar               = kron(eye(N_p), Q);
+R_Bar               = kron(eye(M_c), R);
 
 %% Equation of Motion
 syms x(t) theta(t) m0 m1 l1 g F
@@ -151,60 +151,6 @@ R_ref = sym(zeros(N_p*2, 1));
 Delta_U = formula(-(Phi.'*Q_Bar*Phi + R_Bar)^(-1)*Phi.'*Q_Bar*(F_a*x_a - R_ref));
 delta_u_k = Delta_U(1);
 
-%% Displaying the Result
-% Output y
-figure(1)
-clf;
-yyaxis left
-h2 = plot(t, x2, '-b', 'DisplayName', 'theta');
-hold on
-ylabel('\theta [rad]')
-set(gca, 'YColor', 'b');
-yyaxis right
-h1 = plot(t, x1, '-r', 'DisplayName', 'x');
-ylabel('x [m]')
-set(gca, 'YColor', 'r');
-xlabel('t [s]')
-title('State vs. Time')
-legend([h1, h2], {'x', '\theta'}, 'Location', 'best');
-hold off
-
-% Sliding Surface
-figure(2)
-fplot(@(t) -C_x*t)
-hold on
-quiver(x1(1:end-1), x3(1:end-1), diff(x1), diff(x3), 1, 'r', 'LineWidth', 1);
-plot(0, 0, 'ok', 'MarkerSize', 20)
-xlim([min(x1)-0.01, max(x1)]*1.1)
-ylim([min(x3), max(x3)]*1.1)
-title('Phase Portrait: Linear Motion')
-xlabel('x1 [m]')
-ylabel('x3 [m/s]')
-legend('s = 0', 'phase portrait', '', 'Location', 'best')
-hold off
-
-figure(3)
-plot(C_theta*(x2-z), x4)
-hold on
-quiver(x2(1:end-1), x4(1:end-1), diff(x2), diff(x4), 1, 'r', 'LineWidth', 1);
-plot(0, 0, 'ok', 'MarkerSize', 20)
-% xlim([-1, 1])
-title('Phase Portrait: Angular Motion')
-xlabel('x2 [rad]')
-ylabel('x4 [rad/s]')
-legend('s = 0', 'phase portrait', '', 'Location', 'best')
-hold off
-
-figure(4)
-plot(t, S_theta)
-hold on
-plot(t, S_x)
-title('The magnitude of Sliding Surface')
-xlabel('t [s]')
-ylabel('S')
-legend('S_{\theta}', 'S_x', 'Location', 'best')
-hold off
-
 %% Comparing Parameters
 figure(1)
 plot(t, x1);
@@ -214,49 +160,132 @@ figure(2)
 plot(t, x2);
 hold on
 
+figure(3)
+plot(t(1:end-1), computeCumulativeWork(x1, u));
+hold on
+
 %% Legends
 figure(1)
-title('Effect of C_x on x')
+title('Effect of R on x')
 xlabel('t [s]')
 ylabel('x [m]')
 hold off
-legend('C_x = 0.1', 'C_x = 1', 'C_x = 5', 'C_x = 10', 'Location', 'best')
+legend('M = 2', 'M = 5', 'M = 15', 'M = 45', 'Location', 'best')
 
 figure(2)
-title('Effect of C_x on \theta')
+title('Effect of R on \theta')
 xlabel('t [s]')
 ylabel('\theta [rads]')
 hold off
-legend('C_x = 0.1', 'C_x = 1', 'C_x = 5', 'C_x = 10', 'Location', 'best')
+legend('M = 2', 'M = 5', 'M = 15', 'M = 45', 'Location', 'best')
 
 
-%% Input and Output
-figure(1)
-clf;
-yyaxis left
-h2 = plot(t, x2, '-b');
-hold on
-h1 = plot(t, x1, '-r', 'DisplayName', 'x');
-ylabel('Ouput x and \theta')
-set(gca, 'YColor', 'b');
-yyaxis right
-h3 = plot(t, u, '-g');
-ylabel('Input F')
-set(gca, 'YColor', 'g');
+figure(3)
+title('Effect of R on Energy Input')
 xlabel('t [s]')
-title('State vs. Time')
-legend([h1, h2, h3], {'x', '\theta', 'u'}, 'Location', 'best');
+ylabel('u [N]')
 hold off
+legend('M = 2', 'M = 5', 'M = 15', 'M = 45', 'Location', 'best')
 
-%% Reference and Output
-figure(1)
-plot(t, ref, '-b');
-hold on
-plot(t, x1, '-r');
-ylabel('x [m]')
-xlabel('t [s]')
-title('Sinusoidal Response')
-legend('reference', 'x', 'Location', 'best');
-hold off
+%% Robustness
+figure(4)
+variable = [23, 30, 40, 50, 60, 70, 80];
+Dist =  [3.43, 3.35, 2.92, 2.8, 1.3, 0.98, 0.79];
+plot(variable, Dist, '-ob');
+xlabel('R')
+ylabel('Disturbance [N]')
+title('Prediction Horizon (N)')
 
+%%
+computeCumulativeWork(x1, u);
+ans(end)
+%% Work Input
+figure(4)
+variable = 2:20;
+Dist =  [0.0462, 0.0431, 0.0352, 0.0342, 0.0361, 0.0388, 0.0412, 0.0436, 0.0455, ...
+         0.0468, 0.0468, 0.0461, 0.0452, 0.0446, 0.0442, 0.0441, 0.0441, 0.0441, 0.0441];
+plot(variable, Dist, '-ob');
+xlabel('Control Horizon (M)')
+ylabel('Total Work [J]')
 
+%% System Identification (Using FFT)
+% Perform FFT on both signals
+n = length(x1(1000:end));
+fft_input = fft(Trajectory(1, 1000:length(x1)));
+fft_output = fft(x1(1000:end));
+
+% Frequency axis
+fs = 1/T_s; % Sampling frequency
+f = (0:n-1)*(fs/n); % Frequency vector
+
+% Identify the frequency of interest (e.g., fundamental frequency)
+[~, idx] = min(abs(f - frequency)); % Find index of the target frequency
+
+% Calculate gain and phase shift at the target frequency
+gain = abs(fft_output(idx)) / abs(fft_input(idx));
+phase_shift = angle(fft_output(idx)) - angle(fft_input(idx));
+
+% Convert phase shift to degrees
+phase_shift_degrees = rad2deg(phase_shift);
+
+% Display results
+fprintf('Gain: %.4f\n', gain);
+fprintf('Phase Shift: %.4f degrees\n', phase_shift_degrees);
+
+figure(5)
+plot(t(1:length(x1)), Trajectory(1, 1:length(x1)), t(1:length(x1)), x1)
+xlabel('Time [s]')
+ylabel('Position [m]')
+legend('x_d', 'x', 'location', 'best')
+
+%% Bode Plot
+freqs = [0.01, 0.05, 0.1, ...
+         0.2, 0.3, 0.4, ...
+         0.5, 0.8, 1, 5];
+gains = [1, 1.02, 1.06, ...
+         1.2736, 1.5181, 1.1383, ...
+         0.7023, 0.25889, 0.1706, 0.0036];
+phases = [-0.03, -0.03, -1.14, ...
+          -8.4141, -33.5539, -66.7598, ... 
+          -78.2385, -66.7061, -50.1954, -205.5448];
+
+% Convert gain to dB
+gains_dB = 20 * log10(gains);
+
+figure(6)
+% Plot Gain (Magnitude) in dB
+subplot(2,1,1);
+semilogx(freqs, gains_dB, 'b-o');
+grid on;
+xlabel('Frequency (Hz)');
+ylabel('Gain (dB)');
+xlim([min(freqs) max(freqs)]); 
+% Plot Phase in degrees
+subplot(2,1,2);
+semilogx(freqs, phases, 'r-o');
+grid on;
+xlabel('Frequency (Hz)');
+ylabel('Phase (degrees)');
+xlim([min(freqs) max(freqs)]); 
+% Improve layout
+sgtitle('Bode Plot');
+%% Helper Function
+function cumulativeWork = computeCumulativeWork(x, F)
+    % Function to compute the cumulative sum of work done by the input force
+    %
+    % Inputs:
+    %   F - Vector of input forces
+    %   x - Vector of cart positions corresponding to the forces
+    %
+    % Output:
+    %   cumulativeWork - The cumulative sum of work done by the force F
+
+    % Calculate the change in position (displacement)
+    delta_x = diff(x);
+
+    % Calculate the work done in each segment
+    work = abs(F(1:end-1) .* delta_x);
+
+    % Calculate the cumulative sum of work done
+    cumulativeWork = cumsum(work);
+end
